@@ -1,4 +1,6 @@
 #include <stdlib.h>
+#include <iostream>
+#include "..\headers\vector.h"
 class vector
 {
 private:
@@ -9,10 +11,18 @@ public:
     double get(int id) {}
     void set(int id, double value) {}
     int getSize() {}
+    void print() {}
     vector(int size_) {}
     ~vector() {}
 };
-
+void vector::print()
+{
+    for (int j = 0; j < this->size; j++)
+    {
+        std::cout << this->get(j);
+    }
+    std::cout << "\n";
+}
 double vector::get(int id)
 {
     double *ptr = this->self + id;

@@ -1,7 +1,9 @@
+#include <omp.h>
 #include <stdlib.h>
 #include <algorithm>
 #include <stdexcept>
-#include "..\headers\vector.h"
+#include "..\headers\matrix.h"
+#include <iostream>
 class matrix
 {
 private:
@@ -10,13 +12,13 @@ private:
     int rows;
     int gap;
     int size;
-    long determinant;
     matrix multiply(matrix *left, matrix *right) {}
-    matrix matrix::GaussJordan() {}
-    double matrix::GaussForward(matrix *og) {}
-    void matrix::GaussBackward(matrix *og) {}
-    matrix matrix::HouseholderMethod(bool qr) {}
-    matrix matrix::QRMethod() {}
+    matrix GaussJordan() {}
+    double GaussForward(matrix *og) {}
+    void GaussBackward(matrix *og) {}
+    matrix HouseholderMethod(bool qr) {}
+    matrix QRMethod() {}
+    void swapRows(int row1, int row2) {}
 
 public:
     double get(int colId, int rowId)
@@ -35,10 +37,31 @@ public:
     matrix transpose() {}
     double frob_norm() {}
     matrix scale(double by) {}
+    void print() {}
     matrix(int col, int rows_, int gap_ = 1) {}
     ~matrix() {}
 };
-
+void matrix::swapRows(int row1, int row2)
+{
+    double temp;
+    for (int i = 0; i < this->columns; i++)
+    {
+        temp = this->get(i, row1);
+        this->set(i, row1, this->get(i, row2));
+        this->set(i, row2, temp);
+    }
+}
+void matrix::print()
+{
+    for (int i = 0; i < this->rows; i++)
+    {
+        for (int j = 0; j < this->columns; j++)
+        {
+            std::cout << this->get(j, i);
+        }
+        std::cout << "\n";
+    }
+}
 double matrix::get(int colId, int rowId)
 {
     double *ptr = this->self + (colId * (this->rows + this->gap) + rowId);
@@ -87,6 +110,7 @@ matrix matrix::multiply(matrix *left, matrix *right)
     int gap_ = std::max(left->gap, right->gap);
     double t;
     matrix res = matrix(right->columns, left->rows, gap_);
+#pragma omp parallel for
     for (int i = 0; i < right->columns; i++)
     {
         for (int j = 0; j < left->rows; j++)
@@ -94,10 +118,12 @@ matrix matrix::multiply(matrix *left, matrix *right)
             res.set(i, j, 0);
         }
     }
-    for (int i = 0; i < left->rows; i++)
+#pragma omp parallel for
+    for (int j = 0; j < right->columns; j++)
     {
-        for (int j = 0; j < right->columns; j++)
+        for (int i = 0; i < left->rows; i++)
         {
+
             t = 0;
             for (int k = 0; k < left->columns; k++)
             {
@@ -149,6 +175,7 @@ matrix matrix::add(matrix *other)
         int gap_ = std::max(this->gap, other->gap);
         double t;
         matrix res = matrix(this->columns, this->rows, gap_);
+#pragma omp parallel for
         for (int i = 0; i < this->columns; i++)
         {
             for (int j = 0; j < this->rows; j++)
@@ -171,6 +198,7 @@ matrix matrix::substract(matrix *other)
         int gap_ = std::max(this->gap, other->gap);
         double t;
         matrix res = matrix(this->columns, this->rows, gap_);
+#pragma omp parallel for
         for (int i = 0; i < this->columns; i++)
         {
             for (int j = 0; j < this->rows; j++)
@@ -191,6 +219,7 @@ matrix matrix::transpose()
 {
     matrix res = matrix(this->rows, this->columns, this->gap);
     double *ptr = res.self;
+#pragma omp parallel for
     for (int i = 0; i < this->rows; i++)
     {
         for (int j = 0; j < this->columns; j++)
@@ -207,6 +236,7 @@ matrix matrix::scale(double by)
 {
     matrix res = matrix(this->columns, this->rows, this->gap);
     double *ptr = res.self;
+#pragma omp parallel for
     for (int i = 0; i < this->columns; i++)
     {
         for (int j = 0; j < this->rows; j++)
@@ -224,6 +254,7 @@ double matrix::GaussForward(matrix *og)
     int n = this->rows;
     int m = this->columns;
     double coef = 1;
+#pragma omp parallel for
     for (int k = 0; k < n; k++) // k-номер строки
     {
         for (int i = 0; i < m; i++)                             // i-номер столбца
@@ -245,6 +276,7 @@ void matrix::GaussBackward(matrix *og)
 {
     int n = this->rows;
     int m = this->columns;
+#pragma omp parallel for
     for (int k = n - 1; k > -1; k--) // k-номер строки
     {
         for (int i = m - 1; i > -1; i--) // i-номер столбца
@@ -261,9 +293,10 @@ matrix matrix::GaussJordan()
 {
     int n = this->rows;
     matrix xirtaM = matrix(n, n, this->gap);
+#pragma omp parallel for
     for (int i = 0; i < n; i++)
         xirtaM.set(i, i, 1);
-
+#pragma omp parallel for
     matrix Matrix_Big = matrix(2 * n, n, this->gap);
     for (int i = 0; i < n; i++)
         for (int j = 0; j < n; j++)
@@ -278,7 +311,8 @@ matrix matrix::GaussJordan()
     // Обратный ход (Зануление верхнего правого угла)
     Matrix_Big.GaussBackward(this);
 
-    // Отделяем от общей матрицы
+// Отделяем от общей матрицы
+#pragma omp parallel for
     for (int i = 0; i < n; i++)
         for (int j = 0; j < n; j++)
             xirtaM.set(j, i, Matrix_Big.get(j + n, i));
@@ -306,6 +340,7 @@ vector matrix::mul_by_vec_left(vector *other)
     {
         vector res = vector(n);
         double temp;
+#pragma omp parallel for
         for (int j = 0; j < n; j++)
         {
             temp = 0;
@@ -330,6 +365,7 @@ vector matrix::mul_by_vec_right(vector *other)
     {
         vector res = vector(n);
         double temp;
+#pragma omp parallel for
         for (int j = 0; j < m; j++)
         {
             temp = 0;
@@ -353,6 +389,7 @@ double matrix::get_determinant()
     {
         double coefs = this->GaussForward(this);
         double res = 0;
+#pragma omp parallel for
         for (int i = 0; i < this->rows; i++)
         {
             res += this->get(i, i);
@@ -373,6 +410,7 @@ matrix matrix::HouseholderMethod(bool qr)
     double temp;
     double cond;
     matrix I = matrix(n, n);
+#pragma omp parallel for
     for (int i = 0; i < n; i++)
     {
         for (int j = 0; j < n; j++)
@@ -382,6 +420,7 @@ matrix matrix::HouseholderMethod(bool qr)
         I.set(i, i, 1);
     }
     matrix Q = I;
+#pragma omp parallel for
     for (int j = 0; j < n - 1; j++)
     {
         int m = n - j;
@@ -447,6 +486,7 @@ matrix matrix::QRMethod()
     int n = res.rows;
     matrix I = matrix(n, n);
     double v = 0;
+#pragma omp parallel for
     for (int i = 0; i < n; i++)
     {
         for (int j = 0; j < n; j++)
@@ -469,6 +509,7 @@ vector matrix::eigenvalues()
     {
         matrix QRres = this->QRMethod();
         vector res = vector(QRres.rows);
+#pragma omp parallel for
         for (int i = 0; i < QRres.rows; i++)
         {
             res.set(i, QRres.get(i, i));
