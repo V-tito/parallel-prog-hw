@@ -16,6 +16,10 @@ public:
     int getSize() ;
     void print() ;
     void fprint(std::ofstream& of);
+    double eucledianNorm();
+    vector scale(double by);
+    vector add(vector *other);
+    double scalar_mul_left(vector*other);
     vector(const vector &other);
     vector &operator=(const vector &other)
     {

@@ -14,7 +14,7 @@ int main()
     }
     outfile << "A:\n";
     example.fprint(outfile);
-    outfile << "Det of A:" << example.get_determinant();
+    outfile << "Det of A=" << example.get_determinant();
 
     return 0;
 }

@@ -7,6 +7,15 @@
 #include <fstream>
 #include <cmath>
 #include <cstring>
+void matrix::swapRows(int row1, int row2)
+{
+    double temp;
+    for (int i = 0; i < this->columns; i++)
+    {
+        temp = this->get(i, row1);
+        this->set(i, row1, this->get(i, row2));
+        this->set(i, row2, temp);
+    }}
 
 matrix::matrix(const matrix &other) : rows(other.rows), columns(other.columns), gap(other.gap)
 {
@@ -20,7 +29,7 @@ void matrix::print()
     {
         for (int j = 0; j < this->columns; j++)
         {
-            std::cout << this->get(j, i);
+            std::cout << this->get(j, i)<<" | ";
         }
         std::cout << "\n";
     }
@@ -33,7 +42,7 @@ void matrix::fprint(std::ofstream& of)
     {
         for (int j = 0; j < this->columns; j++)
         {
-            of << this->get(j, i);
+            of << this->get(j, i)<<" | ";
         }
         of << "\n";
     }
@@ -104,8 +113,6 @@ matrix matrix::multiply(matrix *left, matrix *right)
             for (int k = 0; k < left->columns; k++)
             {
                     t += left->get(k, i) * right->get(j, k);
-                    std::cout<<"A"<<i<<k<<"*"<<"B"<<k<<j<<"="<<left->get(k, i)<<"*"<<right->get(j, k)<<"="<<left->get(k, i) * right->get(j, k)<<"\n";
-                    std::cout<<"res"<<j<<i<<"="<<t;
                 }
             res.set(j, i, t);
         }
@@ -229,15 +236,41 @@ double matrix::GaussForward(matrix *og)
     int n = this->rows;
     int m = this->columns;
     double coef = 1;
+    double temp;
 #pragma omp parallel for
     for (int k = 0; k < n; k++) // k-номер строки
     {
-        for (int i = 0; i < m; i++)                             // i-номер столбца
-            this->set(i, k, this->get(i, k) / Clone.get(k, k)); // Деление k-строки на первый член !=0 для преобразования его в единицу
+
+    Clone.print();
+
+    this->print();
+    temp=Clone.get(k, k);
+        if (temp==0) {
+            for (int i=k++;i<n;i++){
+                if (Clone.get(k,i)!=0){
+                    temp=Clone.get(k,i);
+                    this->swapRows(i,k);
+                    Clone.swapRows(i,k);
+                    coef*=-1;
+                    break;
+                }}
+                if (temp==0){
+                    continue;
+            }
+        }                          
+        for (int i = 0; i < m; i++)  // i-номер столбца
+        {
+            this->set(i, k, this->get(i, k) / temp);//нормировка
+            
+        }   
+        coef=coef*temp; 
+         
         for (int i = k + 1; i < n; i++)                         // i-номер следующей строки после k
         {
             double K = this->get(k, i) / this->get(k, k); // Коэффициент
-            coef *= K;
+
+            if (k!=0){coef /= K;}
+            
             for (int j = 0; j < m; j++)                                 // j-номер столбца следующей строки после k
                 this->set(j, i, this->get(j, i) - this->get(j, k) * K); // Зануление элементов матрицы ниже первого члена, преобразованного в единицу
         }
@@ -245,17 +278,39 @@ double matrix::GaussForward(matrix *og)
             for (int j = 0; j < n; j++)
                 Clone.set(j, i, this->get(j, i));
     }
+    Clone.print();
+    this->print();
     return coef;
 }
 void matrix::GaussBackward(matrix *og)
 {
+    matrix Clone=*og;
     int n = this->rows;
     int m = this->columns;
+    double temp;
 #pragma omp parallel for
     for (int k = n - 1; k > -1; k--) // k-номер строки
     {
+
+    Clone.print();
+
+    this->print();
+        temp=this->get(k, k);
+        if (temp==0) {
+            for (int i=k++;i<n;i++){
+                if (og->get(k,i)!=0){
+                    temp=this->get(k,i);
+                    this->swapRows(i,k);
+                    Clone.swapRows(i,k);
+                    break;
+                }
+                if (temp==0){
+                    continue;
+                }
+            }
+        }           
         for (int i = m - 1; i > -1; i--) // i-номер столбца
-            this->set(i, k, this->get(i, k) / og->get(k, k));
+            this->set(i, k, this->get(i, k) / temp);
         for (int i = k - 1; i > -1; i--) // i-номер следующей строки после k
         {
             double K = this->get(k, i) / this->get(k, k);
@@ -281,10 +336,18 @@ matrix matrix::GaussJordan()
         }
 
     // Прямой ход (Зануление нижнего левого угла)
-    Matrix_Big.GaussForward(this);
+    double det=Matrix_Big.GaussForward(this);
 
+    for (int i=0;i<n;i++){
+        det*=Matrix_Big.get(i,i);
+    }
+
+if (det!=0){
     // Обратный ход (Зануление верхнего правого угла)
-    Matrix_Big.GaussBackward(this);
+
+    Matrix_Big.GaussBackward(this);} else {
+         throw std::invalid_argument("determinant is zero!");
+    }
 
 // Отделяем от общей матрицы
 #pragma omp parallel for
@@ -363,14 +426,14 @@ double matrix::get_determinant()
     if (this->rows == this->columns)
     {
         double coefs = this->GaussForward(this);
-        double res = 0;
+        double res = 1;
 #pragma omp parallel for
         for (int i = 0; i < this->rows; i++)
         {
-            res += this->get(i, i);
+            res *= this->get(i, i);
         }
-        res = res / coefs;
-        return res;
+        res = res * coefs;
+        return abs(res);
     }
     else
     {
@@ -385,6 +448,7 @@ matrix matrix::HouseholderMethod(bool qr)
     double temp;
     double cond;
     matrix I = matrix(n, n);
+    matrix H_ = matrix(n, n);
 #pragma omp parallel for
     for (int i = 0; i < n; i++)
     {
@@ -399,51 +463,68 @@ matrix matrix::HouseholderMethod(bool qr)
     for (int j = 0; j < n - 1; j++)
     {
         int m = n - j;
-        matrix H = I;
+        matrix H=matrix (m,m);
+        matrix Rj=matrix(m,m);
+        for (int i = 0; i < m; i++)
+    {
+        for (int k = 0; k < m; k++)
+        {
+            Rj.set(i, k, R.get(i+j,k+j));
+        }
+    }
         vector u = vector(m);
         cond = 0;
         for (int k = 1; k < m; k++)
         {
-            temp = this->get(j + k, j);
+            temp = Rj.get(0,k);
             cond += temp * temp;
             u.set(k, temp);
         }
         if (cond > 0)
         {
-            temp = this->get(j, j);
+            temp = Rj.get(0, 0);
             u.set(0, temp);
             cond += temp * temp;
-            for (int k = 0; k < m; k++)
-            {
-                u.set(k, u.get(k) + cond);
-            }
+            cond=sqrt(cond);
+            if (temp<=0){cond*=-1;}
+            //for (int k = 0; k < m; k++)
+            //{
+                u.set(0, u.get(0)+ cond);
+                u.scale(u.eucledianNorm());
+            //}
             for (int i = 0; i < m; i++)
             {
                 for (int l = 0; l < m; l++)
                 {
-                    H.set(j + i, j + l, (static_cast<int>(i == l) - 2 * u.get(i) * u.get(l)));
+                    H.set(i, l, (static_cast<int>(i == l) - 2 * u.get(i) * u.get(l)));
                 }
             }
-        }
-        else
-        {
+        } else {
             for (int i = 0; i < m; i++)
             {
-                for (int l = 0; l < m; l++)
+            for (int l = 0; l < m; l++)
                 {
-                    H.set(j + i, j + l, (static_cast<int>(i == l)));
-                }
-            }
+                    
+                    H.set(i, l, (static_cast<int>(i == l)));
+                }}
+
         }
-        for (int k = j; k < n; k++)
-        {
-            for (int l = j; l < n; l++)
+        Rj = Rj.multiply_right(&H);
+       std::cout<<"got u\n";
+        u.print();
+        std::cout<<"got H\n";
+        H.print();
+        H_=I;
+        for (int i = 0; i < m; i++)
             {
-                R.set(k, l, R.get(k, l));
-            }
-        }
-        Q = Q.multiply_right(&H);
-        R = R.multiply_right(&H);
+            for (int l = 0; l < m; l++)
+                {
+                    
+                    R.set(i+j, l+j, Rj.get(i,l));
+                    H_.set(i+j, l+j, H.get(i,l));
+                }}
+                
+        Q = Q.multiply_right(&H_);
     }
     Q = Q.transpose();
     if (qr)
@@ -453,10 +534,78 @@ matrix matrix::HouseholderMethod(bool qr)
     return R;
 }
 
+matrix matrix::HouseholderMethod2(){
+    int n=this->rows;
+    matrix R=*this;
+    double temp;
+    double cond;
+    double g;
+    int m;
+    matrix I = matrix(n, n);
+    matrix H = matrix(n, n);
+    vector x=vector(n);
+    vector v=vector(n);
+#pragma omp parallel for
+    for (int i = 0; i < n; i++)
+    {
+        for (int j = 0; j < n; j++)
+        {
+            I.set(i, j, 0);
+        }
+        I.set(i, i, 1);
+    }
+    matrix Q=I;
+    for (int j=0;j<n-1;j++){
+        m=n-j;
+        vector s=vector(m);
+        vector u=vector(m);
+        for (int i=0;i<m;i++){
+            s.set(i,R.get(j,i+j));
+        }
+        if (s.eucledianNorm()==0){
+            for (int i=0;i<n;i++){
+                v.set(i,0);
+            }
+            v.set(j,1);
+            g=0.5;
+        } else{
+            u=s.scale(s.eucledianNorm());
+            for(int i=0;i<j;i++){
+                v.set(i,0);
+            }
+            for(int i=j+1;i<n;i++){
+                v.set(i,u.get(i-j));
+            }
+            temp=u.get(j);
+            if (temp==0){
+                v.set(j,1);
+            }else{
+                v.set(j,(temp/abs(temp))*(1+abs(temp)));
+            }
+            g=abs(v.get(j));
+        }
+        for (int k=j;k<n;k++){
+        for (int i=0;i<n;i++){
+            x.set(i,R.get(k,i));
+        }
+        vector t=v.scale(x.scalar_mul_left(&v)/g);
+        x=x.add(&t);
+        for (int i=0;i<n;i++){
+            R.set(k,i,x.get(i));
+        }
+
+        }
+    }
+    return R;
+
+}
+
 matrix matrix::QRMethod()
 {
-    matrix res = this->HouseholderMethod(false);
+    matrix res = this->HouseholderMethod2();
     matrix prev = res;
+    std::cout<<"hessenberg?\n";
+    prev.print();
     double cond;
     int n = res.rows;
     matrix I = matrix(n, n);
@@ -470,12 +619,16 @@ matrix matrix::QRMethod()
         }
         I.set(i, i, 1);
     }
-    do
+    for (int i=0;i<10000;i++)
     {
         res = res.HouseholderMethod(true);
         cond = res.substract(&prev).frob_norm();
         prev = res;
-    } while (cond > 0.000000000000001);
+        if (cond <= 0.000000000000001) {break;}
+    } 
+    std::cout<<"cond"<<cond<<"\n";
+    std::cout<<"res\n";
+    res.print();
     return res;
 }
 vector matrix::eigenvalues()

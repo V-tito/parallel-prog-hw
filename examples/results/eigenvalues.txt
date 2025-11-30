@@ -1,6 +1,6 @@
 A:
-123
-234
-345
+1 | 2 | 3 | 
+2 | 3 | 4 | 
+3 | 4 | 5 | 
 Eigenvalues of A:
 -nan-nan-nan

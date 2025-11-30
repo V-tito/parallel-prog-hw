@@ -1,6 +1,7 @@
 #include "../headers/matrix.h"
 #include <iostream>
 #include <fstream> 
+#include<cmath>
 int main()
 {
     std::ofstream outfile("./results/inverse.txt");
@@ -9,7 +10,7 @@ int main()
     {
         for (int j = 0; j < 3; j++)
         {
-            example.set(i, j, i+1);
+            example.set(i, j, pow(i,j));
         }
     }
     outfile << "A:\n";
