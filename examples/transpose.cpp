@@ -13,6 +13,7 @@ int main()
     std::cout << "A:\n";
     example.print();
     std::cout << "A transposed:\n";
-    example.transpose().print();
+    matrix res = example.transpose();
+    res.print();
     return 0;
 }
