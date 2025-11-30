@@ -1,0 +1,10 @@
+A:
+100
+010
+001
+B:
+012
+AB called by A:
+012
+BA called by A:
+012

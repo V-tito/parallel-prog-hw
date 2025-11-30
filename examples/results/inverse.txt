@@ -1,0 +1,8 @@
+A:
+123
+123
+123
+inverse of A:
+-nan-nan-nan
+-nan-nan-nan
+-nan-nan-nan

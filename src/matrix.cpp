@@ -6,16 +6,12 @@
 #include <iostream>
 #include <fstream>
 #include <cmath>
+#include <cstring>
 
-void matrix::swapRows(int row1, int row2)
+matrix::matrix(const matrix &other) : rows(other.rows), columns(other.columns), gap(other.gap)
 {
-    double temp;
-    for (int i = 0; i < this->columns; i++)
-    {
-        temp = this->get(i, row1);
-        this->set(i, row1, this->get(i, row2));
-        this->set(i, row2, temp);
-    }
+    this->self = (double *)malloc((rows + gap) * columns * sizeof(double));
+    memcpy(self, other.self, (rows + gap) * columns * sizeof(double));
 }
 /// @brief вывод в консоль
 void matrix::print()
@@ -107,11 +103,10 @@ matrix matrix::multiply(matrix *left, matrix *right)
             t = 0;
             for (int k = 0; k < left->columns; k++)
             {
-                for (int m = 0; m < right->rows; m++)
-                {
-                    t += left->get(k, i) * right->get(j, m);
+                    t += left->get(k, i) * right->get(j, k);
+                    std::cout<<"A"<<i<<k<<"*"<<"B"<<k<<j<<"="<<left->get(k, i)<<"*"<<right->get(j, k)<<"="<<left->get(k, i) * right->get(j, k)<<"\n";
+                    std::cout<<"res"<<j<<i<<"="<<t;
                 }
-            }
             res.set(j, i, t);
         }
     }
@@ -321,12 +316,12 @@ vector matrix::mul_by_vec_left(vector *other)
         vector res = vector(n);
         double temp;
 #pragma omp parallel for
-        for (int j = 0; j < n; j++)
+        for (int j = 0; j < n; j++)//строка
         {
             temp = 0;
-            for (int i = 0; i < m; i++)
+            for (int i = 0; i < m; i++)//столбец
             {
-                temp += this->get(j, i);
+                temp += this->get(i, j)*other->get(i);
             }
             res.set(j, temp);
         }
@@ -346,12 +341,12 @@ vector matrix::mul_by_vec_right(vector *other)
         vector res = vector(n);
         double temp;
 #pragma omp parallel for
-        for (int j = 0; j < m; j++)
+        for (int j = 0; j < m; j++)//столбец
         {
             temp = 0;
-            for (int i = 0; i < n; i++)
+            for (int i = 0; i < n; i++)//строка
             {
-                temp += this->get(j, i);
+                temp += this->get(j, i)*other->get(i);
             }
             res.set(j, temp);
         }

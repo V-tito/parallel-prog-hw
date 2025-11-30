@@ -2,7 +2,13 @@
 #include <iostream>
 #include <fstream>
 #include "../headers/vector.h"
+#include <cstring>
 
+vector::vector(const vector &other) : size(other.size)
+{
+    this->self = (double *)malloc(size * sizeof(double));
+    memcpy(self, other.self, size * sizeof(double));
+}
 void vector::print()
 {
     for (int j = 0; j < this->size; j++)

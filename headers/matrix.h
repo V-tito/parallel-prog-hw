@@ -1,6 +1,7 @@
 #include "vector.h"
 #include <iostream>
 #include <fstream>
+#include <cstring>
 #ifndef MATRIX_H // Include guard
 #define MATRIX_H
 class matrix
@@ -35,7 +36,6 @@ class matrix
     /// @brief поменять местами строки (должно войти в метод Гаусса)
     /// @param row1 индекс строки 1
     /// @param row2 индекс строки 2
-    void swapRows(int row1, int row2);
 public:
     /// @brief получить элемент по индексам
     /// @param colId индекс столбца
@@ -95,6 +95,20 @@ public:
     /// @param of целевой файл
     void fprint(std::ofstream& of);
     matrix(int col, int rows_, int gap_ = 1);  
+     matrix(const matrix &other);
+    matrix &operator=(const matrix &other)
+    {
+        if (this != &other)
+        {
+            free(self); // Release old memory
+            rows = other.rows;
+            columns = other.columns;
+            gap = other.gap;
+            self = (double *)malloc((rows + gap) * columns * sizeof(double));
+            std::memcpy(self, other.self, (rows + gap) * columns * sizeof(double));
+        }
+        return *this;
+    };
     ~matrix();
 };
 #endif
