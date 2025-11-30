@@ -1,20 +1,8 @@
 #include <stdlib.h>
 #include <iostream>
-#include "..\headers\vector.h"
-class vector
-{
-private:
-    double *self;
-    int size;
+#include <fstream>
+#include "../headers/vector.h"
 
-public:
-    double get(int id) {}
-    void set(int id, double value) {}
-    int getSize() {}
-    void print() {}
-    vector(int size_) {}
-    ~vector() {}
-};
 void vector::print()
 {
     for (int j = 0; j < this->size; j++)
@@ -22,6 +10,14 @@ void vector::print()
         std::cout << this->get(j);
     }
     std::cout << "\n";
+}
+void vector::fprint(std::ofstream& of)
+{
+    for (int j = 0; j < this->size; j++)
+    {
+        of << this->get(j);
+    }
+    of << "\n";
 }
 double vector::get(int id)
 {

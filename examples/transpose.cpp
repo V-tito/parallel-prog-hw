@@ -1,19 +1,21 @@
-#include "..\headers\matrix.h"
+#include "../headers/matrix.h"
 #include <iostream>
+#include <fstream> 
 int main()
 {
-    matrix example = matrix(3, 3);
+    std::ofstream outfile("./results/transpose.txt");
+    matrix example = matrix(3, 3,1);
     for (int i = 0; i < 3; i++)
     {
         for (int j = 0; j < 3; j++)
         {
-            example.set(i, j, i + j + 1);
+            example.set(i, j, i+1);
         }
     }
-    std::cout << "A:\n";
-    example.print();
-    std::cout << "A transposed:\n";
+    outfile << "A:\n";
+    example.fprint(outfile);
+    outfile << "A transposed:\n";
     matrix res = example.transpose();
-    res.print();
+    res.fprint(outfile);
     return 0;
 }

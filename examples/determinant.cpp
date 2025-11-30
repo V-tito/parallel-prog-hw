@@ -1,7 +1,9 @@
-#include "..\headers\matrix.h"
+#include "../headers/matrix.h"
 #include <iostream>
+#include <fstream>
 int main()
 {
+    std::ofstream outfile("./results/determinant.txt");
     matrix example = matrix(3, 3);
     for (int i = 0; i < 3; i++)
     {
@@ -10,9 +12,9 @@ int main()
             example.set(i, j, i + j + 1);
         }
     }
-    std::cout << "A:\n";
-    example.print();
-    std::cout << "Det of A:" << example.get_determinant();
+    outfile << "A:\n";
+    example.fprint(outfile);
+    outfile << "Det of A:" << example.get_determinant();
 
     return 0;
 }

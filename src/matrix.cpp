@@ -2,45 +2,11 @@
 #include <stdlib.h>
 #include <algorithm>
 #include <stdexcept>
-#include "..\headers\matrix.h"
+#include "../headers/matrix.h"
 #include <iostream>
-class matrix
-{
-private:
-    double *self;
-    int columns;
-    int rows;
-    int gap;
-    int size;
-    matrix multiply(matrix *left, matrix *right) {}
-    matrix GaussJordan() {}
-    double GaussForward(matrix *og) {}
-    void GaussBackward(matrix *og) {}
-    matrix HouseholderMethod(bool qr) {}
-    matrix QRMethod() {}
-    void swapRows(int row1, int row2) {}
+#include <fstream>
+#include <cmath>
 
-public:
-    double get(int colId, int rowId)
-    {
-    }
-    void set(int colId, int rowId, double value) {}
-    matrix multiply_left(matrix *other) {}
-    matrix multiply_right(matrix *other) {}
-    matrix add(matrix *other) {}
-    matrix substract(matrix *other) {}
-    matrix inverse() {}
-    vector mul_by_vec_left(vector *other) {}
-    vector mul_by_vec_right(vector *other) {}
-    vector eigenvalues() {} // todo
-    double get_determinant() {}
-    matrix transpose() {}
-    double frob_norm() {}
-    matrix scale(double by) {}
-    void print() {}
-    matrix(int col, int rows_, int gap_ = 1) {}
-    ~matrix() {}
-};
 void matrix::swapRows(int row1, int row2)
 {
     double temp;
@@ -51,6 +17,7 @@ void matrix::swapRows(int row1, int row2)
         this->set(i, row2, temp);
     }
 }
+/// @brief вывод в консоль
 void matrix::print()
 {
     for (int i = 0; i < this->rows; i++)
@@ -60,6 +27,19 @@ void matrix::print()
             std::cout << this->get(j, i);
         }
         std::cout << "\n";
+    }
+}
+/// @brief вывод в файл
+/// @param of выходной файл
+void matrix::fprint(std::ofstream& of)
+{
+    for (int i = 0; i < this->rows; i++)
+    {
+        for (int j = 0; j < this->columns; j++)
+        {
+            of << this->get(j, i);
+        }
+        of << "\n";
     }
 }
 double matrix::get(int colId, int rowId)
@@ -74,7 +54,7 @@ void matrix::set(int colId, int rowId, double value)
     *ptr = value;
 }
 
-matrix::matrix(int col, int rows_, int gap_ = 1)
+matrix::matrix(int col, int rows_, int gap_)
 {
     size = col * (rows_ + gap_);
     self = (double *)malloc(size * (sizeof(double)));
@@ -102,7 +82,7 @@ double matrix::frob_norm()
             res += temp * temp;
         }
     }
-    res = sqrt(res);
+    res = std::sqrt(res);
     return res;
 }
 matrix matrix::multiply(matrix *left, matrix *right)

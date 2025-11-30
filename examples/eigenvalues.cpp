@@ -1,7 +1,9 @@
-#include "..\headers\matrix.h"
+#include "../headers/matrix.h"
 #include <iostream>
+#include <fstream>
 int main()
 {
+    std::ofstream outfile("./results/eigenvalues.txt");
     matrix example = matrix(3, 3);
     for (int i = 0; i < 3; i++)
     {
@@ -10,9 +12,9 @@ int main()
             example.set(i, j, i + j + 1);
         }
     }
-    std::cout << "A:\n";
-    example.print();
-    std::cout << "Eigenvalues of A:\n";
-    example.eigenvalues().print();
+    outfile << "A:\n";
+    example.fprint(outfile);
+    outfile << "Eigenvalues of A:\n";
+    example.eigenvalues().fprint(outfile);
     return 0;
 }

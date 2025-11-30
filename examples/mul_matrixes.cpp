@@ -1,7 +1,9 @@
-#include "..\headers\matrix.h"
+#include "../headers/matrix.h"
 #include <iostream>
+#include <fstream>
 int main()
 {
+    std::ofstream outfile("./results/mul_matrixes.txt");
     matrix left = matrix(3, 3);
     matrix right = matrix(3, 3);
     for (int i = 0; i < 3; i++)
@@ -12,13 +14,13 @@ int main()
             right.set(i, j, i + j);
         }
     }
-    std::cout << "A:\n";
-    left.print();
-    std::cout << "B:\n";
-    right.print();
-    std::cout << "AB called by A:\n";
-    left.multiply_left(&right).print();
-    std::cout << "AB called by B:\n";
-    right.multiply_right(&left).print();
+    outfile<< "A:\n";
+    left.fprint(outfile);
+    outfile<< "B:\n";
+    right.fprint(outfile);
+    outfile<< "AB called by A:\n";
+    left.multiply_left(&right).fprint(outfile);
+    outfile<< "AB called by B:\n";
+    right.multiply_right(&left).fprint(outfile);
     return 0;
 }
