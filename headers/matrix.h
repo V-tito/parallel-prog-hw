@@ -22,15 +22,14 @@ class matrix
     /// @brief прямой ход метода Гаусса
     /// @param og изначальная матрица (отличается от this в методе Гаусса-Жордана)
     /// @return og после прямого хода
-    double GaussForward(matrix *og);
+    double GaussForward();
     /// @brief обратный ход метода Гаусса
     /// @param og изначальная матрица (отличается от this в методе Гаусса-Жордана)
-    void GaussBackward(matrix *og);
+    void GaussBackward();
     /// @brief метод Хаусхолдера
     /// @param qr если true, возвращает следующую матрицу A(k)=R(k-1)Q(k-1) для QR-метода, иначе - полученную матрицу R (хессенбергову)
     /// @return если qr true, возвращает следующую матрицу A(k)=R(k-1)Q(k-1) для QR-метода, иначе - полученную матрицу R (хессенбергову)
-    matrix HouseholderMethod(bool qr);
-    matrix HouseholderMethod2();
+    matrix HouseholderMethod();
     /// @brief сведение к блочно-диагональной матрице QR-методом (для поиска собственных значений)
     /// @return матрицу близкую к блочно-диагональной (с заданной постоянной точностью в 10^(-15))
     matrix QRMethod();
@@ -76,7 +75,7 @@ public:
     /// @param other вектор
     /// @return произведение
     vector mul_by_vec_right(vector *other);  
-    /// @brief поиск собственных значений матрицы QR-методом, где для поиска разложения используется метод Хаусхолдера (оно не работает и никто(я) не знает, почему)
+    /// @brief поиск собственных значений матрицы QR-методом, где для поиска разложения используется метод Хаусхолдера (не распознает комплексные сз)
     /// @return вектор собственных значений
     vector eigenvalues();
     /// @brief вычисление определителя через приведение к треугольному виду методом Гаусса
@@ -112,5 +111,7 @@ public:
         return *this;
     };
     ~matrix();
+    matrix readFromFile(std::ifstream& file);
+    matrix(std::ifstream& file);
 };
 #endif

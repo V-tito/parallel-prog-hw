@@ -1,0 +1,50 @@
+n=5
+gen attempt 1
+Eig: 4.54394e+08 ns
+D: 12055.2 ns
+T: 2123.4 ns
+Inv: 16043.8 ns
+MML: 5091.8 ns
+MMR: 5007.7 ns
+MVL: 2235.2 ns
+MVR: 2151.4 ns
+n=10
+gen attempt 1
+Eig: 2.0891e+09 ns
+D: 37667.5 ns
+T: 4512.3 ns
+Inv: 59271.6 ns
+MML: 14821.2 ns
+MMR: 14276.5 ns
+MVL: 4630.9 ns
+MVR: 4449.2 ns
+n=15
+gen attempt 1
+Eig: 6.80077e+09 ns
+D: 84247.5 ns
+T: 7501.8 ns
+Inv: 154052 ns
+MML: 34671.4 ns
+MMR: 34112.8 ns
+MVL: 7655.3 ns
+MVR: 7285.1 ns
+n=20
+gen attempt 1
+Eig: 1.7828e+10 ns
+D: 165513 ns
+T: 10903.3 ns
+Inv: 355152 ns
+MML: 70991.2 ns
+MMR: 71263.6 ns
+MVL: 10924.3 ns
+MVR: 10519.1 ns
+n=25
+gen attempt 1
+Eig: 4.14554e+10 ns
+D: 299720 ns
+T: 15869.1 ns
+Inv: 712067 ns
+MML: 137707 ns
+MMR: 139593 ns
+MVL: 15170.8 ns
+MVR: 14633.1 ns

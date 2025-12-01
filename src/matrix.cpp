@@ -7,6 +7,7 @@
 #include <fstream>
 #include <cmath>
 #include <cstring>
+
 void matrix::swapRows(int row1, int row2)
 {
     double temp;
@@ -93,9 +94,8 @@ double matrix::frob_norm()
 matrix matrix::multiply(matrix *left, matrix *right)
 {
     int gap_ = std::max(left->gap, right->gap);
-    double t;
     matrix res = matrix(right->columns, left->rows, gap_);
-#pragma omp parallel for
+#pragma omp parallel for num_threads(4)
     for (int i = 0; i < right->columns; i++)
     {
         for (int j = 0; j < left->rows; j++)
@@ -103,12 +103,13 @@ matrix matrix::multiply(matrix *left, matrix *right)
             res.set(i, j, 0);
         }
     }
-#pragma omp parallel for
+#pragma omp parallel for num_threads(4)
     for (int j = 0; j < right->columns; j++)
     {
+        #pragma omp parallel for num_threads(4)
         for (int i = 0; i < left->rows; i++)
         {
-
+            double t;
             t = 0;
             for (int k = 0; k < left->columns; k++)
             {
@@ -155,13 +156,14 @@ matrix matrix::add(matrix *other)
     if (((this->columns) == (other->columns)) && ((this->rows) == (other->rows)))
     {
         int gap_ = std::max(this->gap, other->gap);
-        double t;
+        
         matrix res = matrix(this->columns, this->rows, gap_);
-#pragma omp parallel for
+#pragma omp parallel for num_threads(4)
         for (int i = 0; i < this->columns; i++)
         {
             for (int j = 0; j < this->rows; j++)
             {
+                double t;
                 t = this->get(i, j) + other->get(i, j);
                 res.set(i, j, t);
             }
@@ -178,13 +180,13 @@ matrix matrix::substract(matrix *other)
     if (((this->columns) == (other->columns)) && ((this->rows) == (other->rows)))
     {
         int gap_ = std::max(this->gap, other->gap);
-        double t;
         matrix res = matrix(this->columns, this->rows, gap_);
-#pragma omp parallel for
+#pragma omp parallel for num_threads(4)
         for (int i = 0; i < this->columns; i++)
         {
             for (int j = 0; j < this->rows; j++)
             {
+                double t;
                 t = this->get(i, j) - other->get(i, j);
                 res.set(i, j, t);
             }
@@ -200,16 +202,13 @@ matrix matrix::substract(matrix *other)
 matrix matrix::transpose()
 {
     matrix res = matrix(this->rows, this->columns, this->gap);
-    double *ptr = res.self;
-#pragma omp parallel for
+#pragma omp parallel for num_threads(4)
     for (int i = 0; i < this->rows; i++)
     {
         for (int j = 0; j < this->columns; j++)
         {
-            *ptr = this->get(j, i);
-            ptr++;
+            res.set(i,j, this->get(j, i));
         }
-        ptr += res.gap;
     }
     return res;
 }
@@ -217,91 +216,81 @@ matrix matrix::transpose()
 matrix matrix::scale(double by)
 {
     matrix res = matrix(this->columns, this->rows, this->gap);
-    double *ptr = res.self;
-#pragma omp parallel for
+#pragma omp parallel for num_threads(4)
     for (int i = 0; i < this->columns; i++)
     {
         for (int j = 0; j < this->rows; j++)
         {
-            *ptr *= by;
-            ptr++;
+            res.set(i,j,this->get(i,j)*by);
         }
-        ptr += this->gap;
     }
     return res;
 }
-double matrix::GaussForward(matrix *og)
+double matrix::GaussForward()
 {
-    matrix Clone = *og;
     int n = this->rows;
     int m = this->columns;
-    double coef = 1;
-    double temp;
-#pragma omp parallel for
+    double coef_ = 1;
+    vector coefs=vector(n);
     for (int k = 0; k < n; k++) // k-номер строки
     {
-
-    Clone.print();
-
-    this->print();
-    temp=Clone.get(k, k);
+        #pragma omp parallel for num_threads(4)
+        for (int i=0;i<n;i++){
+            coefs.set(i,1);
+        }
+    double temp;
+    temp=this->get(k,k);
         if (temp==0) {
             for (int i=k++;i<n;i++){
-                if (Clone.get(k,i)!=0){
-                    temp=Clone.get(k,i);
+                if (this->get(k,i)!=0){
+                    temp=this->get(k,i);
                     this->swapRows(i,k);
-                    Clone.swapRows(i,k);
-                    coef*=-1;
+                    coef_*=-1;
                     break;
                 }}
                 if (temp==0){
                     continue;
             }
-        }                          
+        }                
+        #pragma omp parallel for num_threads(4)          
         for (int i = 0; i < m; i++)  // i-номер столбца
         {
             this->set(i, k, this->get(i, k) / temp);//нормировка
             
         }   
-        coef=coef*temp; 
-         
+        coef_=coef_*temp; 
+         #pragma omp parallel for num_threads(4)
         for (int i = k + 1; i < n; i++)                         // i-номер следующей строки после k
         {
             double K = this->get(k, i) / this->get(k, k); // Коэффициент
 
-            if (k!=0){coef /= K;}
+            if (K!=0){coefs.set(i,1/K);}
             
             for (int j = 0; j < m; j++)                                 // j-номер столбца следующей строки после k
                 this->set(j, i, this->get(j, i) - this->get(j, k) * K); // Зануление элементов матрицы ниже первого члена, преобразованного в единицу
         }
-        for (int i = 0; i < n; i++) // Обновление, внесение изменений в начальную матрицу
-            for (int j = 0; j < n; j++)
-                Clone.set(j, i, this->get(j, i));
+        for (int i=0;i<n;i++){
+        coef_*=coefs.get(i);
     }
-    Clone.print();
-    this->print();
-    return coef;
+        
+    }
+    
+    return coef_;
 }
-void matrix::GaussBackward(matrix *og)
+void matrix::GaussBackward()
 {
-    matrix Clone=*og;
     int n = this->rows;
     int m = this->columns;
-    double temp;
-#pragma omp parallel for
+    
+#pragma omp parallel for num_threads(4)
     for (int k = n - 1; k > -1; k--) // k-номер строки
-    {
-
-    Clone.print();
-
-    this->print();
+    {   double temp;
         temp=this->get(k, k);
         if (temp==0) {
             for (int i=k++;i<n;i++){
-                if (og->get(k,i)!=0){
+                if (this->get(k,i)!=0){
                     temp=this->get(k,i);
                     this->swapRows(i,k);
-                    Clone.swapRows(i,k);
                     break;
                 }
                 if (temp==0){
@@ -322,40 +311,34 @@ void matrix::GaussBackward(matrix *og)
 matrix matrix::GaussJordan()
 {
     int n = this->rows;
-    matrix xirtaM = matrix(n, n, this->gap);
-#pragma omp parallel for
-    for (int i = 0; i < n; i++)
-        xirtaM.set(i, i, 1);
-#pragma omp parallel for
+    matrix res = matrix(n, n, this->gap);
     matrix Matrix_Big = matrix(2 * n, n, this->gap);
+    #pragma omp parallel for num_threads(4)
     for (int i = 0; i < n; i++)
         for (int j = 0; j < n; j++)
         {
             Matrix_Big.set(i, j, this->get(i, j));
-            Matrix_Big.set(i + n, j, xirtaM.get(i, j));
+            Matrix_Big.set(i + n, j, static_cast<int>(i==j));
         }
 
-    // Прямой ход (Зануление нижнего левого угла)
-    double det=Matrix_Big.GaussForward(this);
+    double det=Matrix_Big.GaussForward();
 
     for (int i=0;i<n;i++){
         det*=Matrix_Big.get(i,i);
     }
 
 if (det!=0){
-    // Обратный ход (Зануление верхнего правого угла)
 
-    Matrix_Big.GaussBackward(this);} else {
+    Matrix_Big.GaussBackward();} else {
          throw std::invalid_argument("determinant is zero!");
     }
 
-// Отделяем от общей матрицы
-#pragma omp parallel for
+#pragma omp parallel for num_threads(4)
     for (int i = 0; i < n; i++)
         for (int j = 0; j < n; j++)
-            xirtaM.set(j, i, Matrix_Big.get(j + n, i));
+            res.set(j, i, Matrix_Big.get(j + n, i));
 
-    return xirtaM;
+    return res;
 }
 
 matrix matrix::inverse()
@@ -377,10 +360,10 @@ vector matrix::mul_by_vec_left(vector *other)
     if (m == other->getSize())
     {
         vector res = vector(n);
-        double temp;
-#pragma omp parallel for
+#pragma omp parallel for num_threads(4)
         for (int j = 0; j < n; j++)//строка
         {
+            double temp;
             temp = 0;
             for (int i = 0; i < m; i++)//столбец
             {
@@ -402,10 +385,10 @@ vector matrix::mul_by_vec_right(vector *other)
     if (n == other->getSize())
     {
         vector res = vector(n);
-        double temp;
-#pragma omp parallel for
+#pragma omp parallel for num_threads(4)
         for (int j = 0; j < m; j++)//столбец
         {
+            double temp;
             temp = 0;
             for (int i = 0; i < n; i++)//строка
             {
@@ -424,13 +407,12 @@ vector matrix::mul_by_vec_right(vector *other)
 double matrix::get_determinant()
 {
     if (this->rows == this->columns)
-    {
-        double coefs = this->GaussForward(this);
+    {matrix Clone=*this;
+        double coefs = Clone.GaussForward();
         double res = 1;
-#pragma omp parallel for
         for (int i = 0; i < this->rows; i++)
         {
-            res *= this->get(i, i);
+            res *= Clone.get(i, i);
         }
         res = res * coefs;
         return abs(res);
@@ -441,80 +423,73 @@ double matrix::get_determinant()
     }
 }
 
-matrix matrix::HouseholderMethod(bool qr)
+matrix matrix::HouseholderMethod()
 {
     matrix R = *this;
     int n = this->rows;
-    double temp;
-    double cond;
     matrix I = matrix(n, n);
     matrix H_ = matrix(n, n);
-#pragma omp parallel for
+    double cond;
+    double temp;
+    #pragma omp parallel for num_threads(4)
     for (int i = 0; i < n; i++)
     {
         for (int j = 0; j < n; j++)
         {
-            I.set(i, j, 0);
+            I.set(i, j, static_cast<double>(i == j));
         }
-        I.set(i, i, 1);
     }
     matrix Q = I;
-#pragma omp parallel for
     for (int j = 0; j < n - 1; j++)
     {
         int m = n - j;
         matrix H=matrix (m,m);
         matrix Rj=matrix(m,m);
+        #pragma omp parallel for num_threads(4)
         for (int i = 0; i < m; i++)
-    {
-        for (int k = 0; k < m; k++)
         {
-            Rj.set(i, k, R.get(i+j,k+j));
+            for (int k = 0; k < m; k++)
+            {
+                Rj.set(i, k, R.get(i+j,k+j));
+            }
         }
-    }
         vector u = vector(m);
         cond = 0;
         for (int k = 1; k < m; k++)
         {
-            temp = Rj.get(0,k);
+            temp = Rj.get(k,0);
             cond += temp * temp;
-            u.set(k, temp);
         }
-        if (cond > 0)
+        if (cond < 1e-15) {
+            continue;
+        }
+        temp = Rj.get(0, 0);
+        #pragma omp parallel for num_threads(4)
+        for (int k = 0; k < m; k++)
+        {u.set(k, Rj.get(k,0));}
+        cond += temp * temp;
+        cond=sqrt(cond);
+        if (temp>=0)
         {
-            temp = Rj.get(0, 0);
-            u.set(0, temp);
-            cond += temp * temp;
-            cond=sqrt(cond);
-            if (temp<=0){cond*=-1;}
-            //for (int k = 0; k < m; k++)
-            //{
-                u.set(0, u.get(0)+ cond);
-                u.scale(u.eucledianNorm());
-            //}
-            for (int i = 0; i < m; i++)
-            {
-                for (int l = 0; l < m; l++)
-                {
-                    H.set(i, l, (static_cast<int>(i == l) - 2 * u.get(i) * u.get(l)));
-                }
-            }
-        } else {
-            for (int i = 0; i < m; i++)
-            {
+            cond*=-1.0;
+        }
+        u.set(0, u.get(0)+ cond);
+        if (u.eucledianNorm()<1e-15)
+        {
+            continue;
+        }
+        u=u.scale(1.0/u.eucledianNorm());
+        #pragma omp parallel for num_threads(4)
+        for (int i = 0; i < m; i++)
+        {
             for (int l = 0; l < m; l++)
-                {
-                    
-                    H.set(i, l, (static_cast<int>(i == l)));
-                }}
-
+            {
+                H.set(i, l, (static_cast<double>(i == l) - 2 * u.get(i) * u.get(l)));
+            }
         }
         Rj = Rj.multiply_right(&H);
-       std::cout<<"got u\n";
-        u.print();
-        std::cout<<"got H\n";
-        H.print();
         H_=I;
+        #pragma omp parallel for num_threads(4)
         for (int i = 0; i < m; i++)
             {
             for (int l = 0; l < m; l++)
@@ -527,90 +502,19 @@ matrix matrix::HouseholderMethod(bool qr)
         Q = Q.multiply_right(&H_);
     }
     Q = Q.transpose();
-    if (qr)
-    {
-        R = R.multiply_left(&Q);
-    }
+    R = R.multiply_left(&Q);
     return R;
-}
-
-matrix matrix::HouseholderMethod2(){
-    int n=this->rows;
-    matrix R=*this;
-    double temp;
-    double cond;
-    double g;
-    int m;
-    matrix I = matrix(n, n);
-    matrix H = matrix(n, n);
-    vector x=vector(n);
-    vector v=vector(n);
-#pragma omp parallel for
-    for (int i = 0; i < n; i++)
-    {
-        for (int j = 0; j < n; j++)
-        {
-            I.set(i, j, 0);
-        }
-        I.set(i, i, 1);
-    }
-    matrix Q=I;
-    for (int j=0;j<n-1;j++){
-        m=n-j;
-        vector s=vector(m);
-        vector u=vector(m);
-        for (int i=0;i<m;i++){
-            s.set(i,R.get(j,i+j));
-        }
-        if (s.eucledianNorm()==0){
-            for (int i=0;i<n;i++){
-                v.set(i,0);
-            }
-            v.set(j,1);
-            g=0.5;
-        } else{
-            u=s.scale(s.eucledianNorm());
-            for(int i=0;i<j;i++){
-                v.set(i,0);
-            }
-            for(int i=j+1;i<n;i++){
-                v.set(i,u.get(i-j));
-            }
-            temp=u.get(j);
-            if (temp==0){
-                v.set(j,1);
-            }else{
-                v.set(j,(temp/abs(temp))*(1+abs(temp)));
-            }
-            g=abs(v.get(j));
-        }
-        for (int k=j;k<n;k++){
-        for (int i=0;i<n;i++){
-            x.set(i,R.get(k,i));
-        }
-        vector t=v.scale(x.scalar_mul_left(&v)/g);
-        x=x.add(&t);
-        for (int i=0;i<n;i++){
-            R.set(k,i,x.get(i));
-        }
-
-        }
-    }
-    return R;
-
 }
 
 matrix matrix::QRMethod()
 {
-    matrix res = this->HouseholderMethod2();
+    matrix res = *this;
     matrix prev = res;
-    std::cout<<"hessenberg?\n";
-    prev.print();
     double cond;
     int n = res.rows;
     matrix I = matrix(n, n);
     double v = 0;
-#pragma omp parallel for
+#pragma omp parallel for num_threads(4)
     for (int i = 0; i < n; i++)
     {
         for (int j = 0; j < n; j++)
@@ -621,14 +525,11 @@ matrix matrix::QRMethod()
     }
     for (int i=0;i<10000;i++)
     {
-        res = res.HouseholderMethod(true);
+        res = res.HouseholderMethod();
         cond = res.substract(&prev).frob_norm();
         prev = res;
-        if (cond <= 0.000000000000001) {break;}
+        if (cond <= 1e-15) {break;}
     } 
-    std::cout<<"cond"<<cond<<"\n";
-    std::cout<<"res\n";
-    res.print();
     return res;
 }
 vector matrix::eigenvalues()
@@ -637,7 +538,7 @@ vector matrix::eigenvalues()
     {
         matrix QRres = this->QRMethod();
         vector res = vector(QRres.rows);
-#pragma omp parallel for
+#pragma omp parallel for num_threads(4)
         for (int i = 0; i < QRres.rows; i++)
         {
             res.set(i, QRres.get(i, i));
@@ -649,3 +550,32 @@ vector matrix::eigenvalues()
         throw std::invalid_argument("Matrix is not square");
     }
 } // todo
+
+matrix matrix::readFromFile(std::ifstream& file){
+    try{
+    int rows_, cols;
+    double temp;
+    file >> rows_ >> cols;
+    matrix res=matrix(cols,rows_);
+    //std::cout<<cols<<" "<<rows_<<"\n";
+    for (int i = 0; i < rows; ++i) {
+        for (int j = 0; j < cols; ++j) {
+            if (file >> temp) {
+            std::cout<<temp;
+            res.set(j,i,temp);}
+        }
+    }
+    file.close();
+    return res;}catch(const std::exception& e){
+        std::cout<<"err_fileread"<<e.what();
+        return matrix(0,0);
+    }
+}
+matrix::matrix(std::ifstream& file){
+    try{
+    *this=readFromFile(file);}
+    catch(const std::exception& e){
+        std::cout<<"err_cons"<<e.what();
+        *this=matrix(0,0);
+    }
+}

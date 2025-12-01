@@ -22,7 +22,7 @@ void vector::fprint(std::ofstream& of)
 {
     for (int j = 0; j < this->size; j++)
     {
-        of << this->get(j);
+        of << this->get(j)<<"\n";
     }
     of << "\n";
 }
